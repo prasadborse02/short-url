@@ -1,9 +1,10 @@
 require('dotenv').config();
 const express = require('express');
+const sequelize = require('./config/mysql');
 const redisClient = require('./config/redis');
 const requestLogger = require('./middlewares/requestLogger');
 const urlRoutes = require('./routes/urlRoutes');
-const { logger } = require('./config/logger');
+const { logger, mysqlLogger } = require('./config/logger');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -24,7 +25,15 @@ app.use((req, res) => {
     res.status(404).json({ error: '404 Not Found' });
 });
 
-// Start the server
-app.listen(port, () => {
-    logger.info(`🚀 Server running at http://localhost:${port}`);
-});
+sequelize.authenticate()
+    .then(() => {
+        logger.debug('✅ Database connected');
+    })
+    .then(() => {
+        app.listen(port, () => {
+            logger.debug(`🚀 Server running on http://localhost:${port}`);
+        });
+    })
+    .catch((err) => {
+        logger.error('❌ Error connecting to the database:', err);
+    });

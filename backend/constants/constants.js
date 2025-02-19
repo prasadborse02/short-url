@@ -1,4 +1,7 @@
 module.exports = {
+    API_ENDPOINT: 'http://localhost:3000/l/',
+    CACHE_EXPIRATION: 604800, // 604800 seconds = 1 week
+    SHORT_CODE_LENGTH: 10,
     ERROR_CODES: {
         MISSING_URL: 'MISSING_URL',
         CODE_EXISTS: 'CODE_EXISTS',
@@ -10,5 +13,5 @@ module.exports = {
         CODE_EXISTS: 'Short code already exists',
         NOT_FOUND: 'Short URL not found',
         REDIS_ERROR: 'Redis operation failed'
-    }
+    },
 };

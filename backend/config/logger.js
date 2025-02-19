@@ -7,8 +7,8 @@ const logger = pino({
         options: {
             colorize: true,
             translateTime: 'yyyy-mm-dd HH:MM:ss',
-            ignore: 'pid,hostname',
-            messageFormat: '{msg} {data}',
+            ignore: 'pid,hostname,context',
+            messageFormat: '{context}: {msg} {data}',
             customLevels: {
                 error: 50,
                 warn: 40,
@@ -23,9 +23,11 @@ const logger = pino({
 // Optional: Create child loggers for different contexts
 const httpLogger = logger.child({ context: 'http' });
 const redisLogger = logger.child({ context: 'redis' });
+const mysqlLogger = logger.child({ context: 'mysql' });
 
 module.exports = {
     logger,
     httpLogger,
-    redisLogger
+    redisLogger,
+    mysqlLogger
 };
