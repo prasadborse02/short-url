@@ -1,70 +1,86 @@
-const { nanoid } = require('nanoid');
-const redisClient = require('../config/redis');
-const { logger } = require('../config/logger');
-const { ERROR_CODES, ERROR_MESSAGES } = require('../constants/constants');
+const urlService = require('../services/urlService');
+const { generateUniqueShortCode } = require('../utils/codeGenerator');
+const logger = require('../config/logger');
+const { API_ENDPOINT, SHORT_CODE_LENGTH } = require('../constants/constants');
+const geoip = require('geoip-lite');
+const { v4: uuidv4 } = require('uuid');
 
-const generateShortCode = () => {
-    return nanoid(process.env.URL_LENGTH);
-};
-
-const shortenUrl = async (req, res) => {
-    const { longUrl, requestCode } = req.body;
-
-    if (!longUrl) {
-        return res.status(400).json({ 
-            error: ERROR_CODES.MISSING_URL, 
-            message: ERROR_MESSAGES.MISSING_URL 
-        });
-    }
-    
+exports.createShortUrl = async (req, res) => {
     try {
-        let shortCode = requestCode;
+        const { longUrl, requestCode } = req.body;
         if (requestCode) {
-            const existingUrl = await redisClient.get(requestCode);
-            if (existingUrl) {
-                return res.status(400).json({ 
-                    error: ERROR_CODES.CODE_EXISTS, 
-                    message: ERROR_MESSAGES.CODE_EXISTS 
-                });
+            if (requestCode.length > SHORT_CODE_LENGTH) {
+                return res.status(400).json({ error: 'Requested code is too long' });
             }
-        } else {
-            shortCode = generateShortCode();
+            const exists = await urlService.getOriginalUrl(requestCode);
+            if (exists) {
+                return res.status(400).json({ error: 'Short code already exists' });
+            }
         }
 
-        await redisClient.set(shortCode, longUrl);
-        res.json({ shortUrl: `http://localhost:${process.env.PORT}/${shortCode}` });
-    } catch (err) {
-        logger.error('Redis error:', err);
-        res.status(500).json({ 
-            error: ERROR_CODES.REDIS_ERROR, 
-            message: ERROR_MESSAGES.REDIS_ERROR 
+        const shortCode = requestCode || await generateUniqueShortCode();
+
+        const result = await urlService.createShortUrl(longUrl, shortCode);
+        const url = API_ENDPOINT + shortCode;
+
+        res.json({
+            url: url,
+            originalUrl: longUrl
         });
+    } catch (error) {
+        logger.error('Error creating short URL:', error);
+        res.status(500).json({ error: 'Error creating short URL' });
     }
 };
 
-const redirectUrl = async (req, res) => {
-    const { shortCode } = req.params;
-
+exports.redirectToOriginal = async (req, res) => {
     try {
-        const longUrl = await redisClient.get(shortCode);
-        if (longUrl) {
-            res.redirect(301, longUrl);
-        } else {
-            res.status(404).json({ 
-                error: ERROR_CODES.NOT_FOUND, 
-                message: ERROR_MESSAGES.NOT_FOUND 
+        const { shortCode } = req.params;
+        const originalUrl = await urlService.getOriginalUrl(shortCode);
+
+        if (!originalUrl) {
+            return res.status(404).json({ error: 'Short URL not found' });
+        }
+
+        // Get accurate IP address
+        const ip = req.headers['x-forwarded-for']?.split(',')[0] || 
+                  req.headers['x-real-ip'] || 
+                  req.connection.remoteAddress;
+
+        // Get or set browser ID using cookies
+        let ubid = req.cookies.ubid;
+        if (!ubid) {
+            ubid = uuidv4();
+            res.cookie('ubid', ubid, { 
+                maxAge: 60 * 60 * 1000, // 1 hour
+                httpOnly: true 
             });
         }
-    } catch (err) {
-        logger.error('Redis error:', err);
-        res.status(500).json({ 
-            error: ERROR_CODES.REDIS_ERROR, 
-            message: ERROR_MESSAGES.REDIS_ERROR 
-        });
+
+        // Get country from IP
+        const geo = geoip.lookup(ip);
+        const country = geo ? geo.country : 'Unknown';
+
+        await urlService.recordClick(shortCode, ubid, ip, country);
+        res.redirect(originalUrl);
+    } catch (error) {
+        logger.error(`Error redirecting: ${error}`);
+        res.status(500).json({ error: 'Error redirecting to original URL' });
     }
 };
 
-module.exports = {
-    shortenUrl,
-    redirectUrl
+exports.getUrlAnalytics = async (req, res) => {
+    try {
+        const { shortCode } = req.params;
+        const analytics = await urlService.getUrlAnalytics(shortCode);
+        
+        if (!analytics) {
+            return res.status(404).json({ error: 'URL not found' });
+        }
+
+        res.json(analytics);
+    } catch (error) {
+        logger.error('Error fetching analytics:', error);
+        res.status(500).json({ error: 'Error fetching analytics' });
+    }
 };

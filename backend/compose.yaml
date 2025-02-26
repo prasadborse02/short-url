@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - HOST=0.0.0.0
+      - REDIS_HOST=host.docker.internal
+      - REDIS_PORT=6379
+      - MYSQL_HOST=host.docker.internal
+      - MYSQL_PORT=3307
+      - MYSQL_USER=urlshortener_app
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=url_shortener
+      - MYSQL_DIALECT=mysql
+      - KAFKA_BROKER=host.docker.internal:9092
+      - KAFKA_CLIENT_ID=url-shortener
+      - KAFKA_GROUP_ID=url-shortener-group
+      - KAFKA_TOPIC=click-events
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    # network_mode: "host"  # Uses the host network to connect to existing services
+    dns_opt:
+      - use-vc
+      - no-tld-query
+      - inet6=off
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
