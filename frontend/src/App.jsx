@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import UrlShortener from './components/UrlShortener';
 import Story from './components/Story';
+import Analytics from './components/Analytics';
 import './App.css';
 
 function App() {
@@ -14,7 +15,7 @@ function App() {
                 <main className="main-content">
                     <Routes>
                         <Route path="/" element={<UrlShortener />} />
-                        <Route path="/analytics" element={<div>Analytics Coming Soon...</div>} />
+                        <Route path="/analytics" element={<Analytics />} />
                         <Route path="/story" element={<Story />} />
                     </Routes>
                 </main>
