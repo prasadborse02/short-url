@@ -1,7 +1,9 @@
 const urlService = require('../services/urlService');
 const { generateUniqueShortCode } = require('../utils/codeGenerator');
-const { logger } = require('../config/logger');
+const logger = require('../config/logger');
 const { API_ENDPOINT, SHORT_CODE_LENGTH } = require('../constants/constants');
+const geoip = require('geoip-lite');
+const { v4: uuidv4 } = require('uuid');
 
 exports.createShortUrl = async (req, res) => {
     try {
@@ -40,9 +42,45 @@ exports.redirectToOriginal = async (req, res) => {
             return res.status(404).json({ error: 'Short URL not found' });
         }
 
+        // Get accurate IP address
+        const ip = req.headers['x-forwarded-for']?.split(',')[0] || 
+                  req.headers['x-real-ip'] || 
+                  req.connection.remoteAddress;
+
+        // Get or set browser ID using cookies
+        let ubid = req.cookies.ubid;
+        if (!ubid) {
+            ubid = uuidv4();
+            res.cookie('ubid', ubid, { 
+                maxAge: 60 * 60 * 1000, // 1 hour
+                httpOnly: true 
+            });
+        }
+
+        // Get country from IP
+        const geo = geoip.lookup(ip);
+        const country = geo ? geo.country : 'Unknown';
+
+        await urlService.recordClick(shortCode, ubid, ip, country);
         res.redirect(originalUrl);
     } catch (error) {
-        logger.error('Error redirecting:', error);
+        logger.error(`Error redirecting: ${error}`);
         res.status(500).json({ error: 'Error redirecting to original URL' });
+    }
+};
+
+exports.getUrlAnalytics = async (req, res) => {
+    try {
+        const { shortCode } = req.params;
+        const analytics = await urlService.getUrlAnalytics(shortCode);
+        
+        if (!analytics) {
+            return res.status(404).json({ error: 'URL not found' });
+        }
+
+        res.json(analytics);
+    } catch (error) {
+        logger.error('Error fetching analytics:', error);
+        res.status(500).json({ error: 'Error fetching analytics' });
     }
 };

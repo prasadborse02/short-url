@@ -1,33 +1,27 @@
-const pino = require('pino');
+const { createLogger, format, transports } = require('winston');
+const { combine, timestamp, printf, colorize } = format;
 
-const logger = pino({
-    level: 'trace',
-    transport: {
-        target: 'pino-pretty',
-        options: {
-            colorize: true,
-            translateTime: 'yyyy-mm-dd HH:MM:ss',
-            ignore: 'pid,hostname,context',
-            messageFormat: '{context}: {msg} {data}',
-            customLevels: {
-                error: 50,
-                warn: 40,
-                info: 30,
-                debug: 20,
-                trace: 10
-            }
-        }
-    }
+const customFormat = printf(({ level, message, timestamp, data }) => {
+    return `${timestamp} ${level}: ${message} ${data ? JSON.stringify(data) : ''}`;
 });
 
-// Optional: Create child loggers for different contexts
-const httpLogger = logger.child({ context: 'http' });
-const redisLogger = logger.child({ context: 'redis' });
-const mysqlLogger = logger.child({ context: 'mysql' });
+const logger = createLogger({
+    levels: {
+        error: 0,
+        warn: 1,
+        info: 2,
+        debug: 3,
+        trace: 4
+    },
+    level: 'trace',
+    format: combine(
+        timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        colorize(),
+        customFormat
+    ),
+    transports: [
+        new transports.Console()
+    ]
+});
 
-module.exports = {
-    logger,
-    httpLogger,
-    redisLogger,
-    mysqlLogger
-};
+module.exports = logger;

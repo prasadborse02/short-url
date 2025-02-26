@@ -1,5 +1,5 @@
 const redis = require('redis');
-const { redisLogger } = require('./logger');
+const logger = require('./logger');
 
 const redisClient = redis.createClient({
     socket: {
@@ -9,7 +9,7 @@ const redisClient = redis.createClient({
 });
 
 redisClient.on('error', (err) => {
-    redisLogger.error(err, 'Redis error');
+    logger.error(err, 'Redis error');
 });
 
 module.exports = redisClient;

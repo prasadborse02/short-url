@@ -1,19 +1,15 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/mysql');
 
-const Click = sequelize.define('Click', {
+const Click = sequelize.define('click', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true,
+        autoIncrement: true
     },
     short_code: {
         type: DataTypes.STRING(10),
         allowNull: false,
-    },
-    clicked_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
     },
     ubid: {
         type: DataTypes.STRING(255),
@@ -26,6 +22,10 @@ const Click = sequelize.define('Click', {
     country: {
         type: DataTypes.STRING(100),
         allowNull: true,
+    },
+    clicked_at: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
     },
 }, {
     timestamps: false,

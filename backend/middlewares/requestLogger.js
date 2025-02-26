@@ -1,4 +1,4 @@
-const { logger } = require('../config/logger');
+const logger = require('../config/logger');
 
 const requestLogger = (req, res, next) => {
     const logMessage = `${req.method} ${req.url}: ${JSON.stringify(req.body)}`;

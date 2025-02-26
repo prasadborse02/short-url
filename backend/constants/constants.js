@@ -1,5 +1,5 @@
 module.exports = {
-    API_ENDPOINT: 'http://localhost:3000/l/',
+    API_ENDPOINT: 'http://192.168.31.34:3000/l/',
     CACHE_EXPIRATION: 604800, // 604800 seconds = 1 week
     SHORT_CODE_LENGTH: 10,
     ERROR_CODES: {
