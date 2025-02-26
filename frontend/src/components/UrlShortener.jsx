@@ -69,19 +69,20 @@ const UrlShortener = () => {
                 },
                 body: JSON.stringify({
                     longUrl: url,
-                    requestCode: requestCode || undefined, // Only include if provided
+                    requestCode: requestCode || undefined,
                 }),
             });
 
+            const data = await response.json();
+            
             if (!response.ok) {
-                throw new Error('Failed to shorten URL');
+                throw new Error(data.error || 'Failed to shorten URL');
             }
 
-            const data = await response.json();
             setShortUrl(data.url);
             setError('');
         } catch (err) {
-            setError('An error occurred while shortening the URL.');
+            setError(err.message);
             console.error(err);
         }
     };
