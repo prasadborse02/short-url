@@ -103,23 +103,74 @@ class UrlService {
         try {
             const url = await URL.findOne({
                 where: { short_code: shortCode },
-                attributes: ['original_url', 'short_code', 'created_at']
+                attributes: ['original_url', 'created_at']
             });
 
             if (!url) {
                 return null;
             }
 
-            // Get click count from database
-            const clickCount = await CLICK.count({
-                where: { short_code: shortCode }
+            // Get all clicks for analysis
+            const clicks = await CLICK.findAll({
+                where: { short_code: shortCode },
+                attributes: ['clicked_at', 'ubid', 'ip_address', 'country']
             });
+
+            // Calculate sessions (unique combination of ubid and date)
+            const sessions = new Set();
+            const dateClicks = new Set();
+            const hourlyClicks = Array(24).fill(0);
+            const countryStats = {};
+            const userVisits = {};
+
+            clicks.forEach(click => {
+                const date = new Date(click.clicked_at);
+                const dateStr = date.toISOString().split('T')[0];
+                const sessionKey = `${click.ubid}_${dateStr}`;
+                
+                // Count sessions
+                sessions.add(sessionKey);
+                
+                // Count unique dates
+                dateClicks.add(dateStr);
+                
+                // Count hourly clicks
+                const hour = date.getHours();
+                hourlyClicks[hour]++;
+                
+                // Count by country
+                countryStats[click.country] = (countryStats[click.country] || 0) + 1;
+                
+                // Track user visits
+                if (!userVisits[click.ubid]) {
+                    userVisits[click.ubid] = new Set();
+                }
+                userVisits[click.ubid].add(dateStr);
+            });
+
+            // Calculate repeat visitors (users who visited on multiple days)
+            const repeatVisitors = Object.values(userVisits).filter(dates => dates.size > 1).length;
+
+            // Calculate average sessions per day
+            const activeDays = dateClicks.size;
+            const avgSessionsPerDay = activeDays > 0 ? sessions.size / activeDays : 0;
 
             return {
                 originalUrl: url.original_url,
-                shortCode: url.short_code,
                 createdAt: url.created_at,
-                totalClicks: clickCount
+                analytics: {
+                    totalSessions: sessions.size,
+                    activeDays: activeDays,
+                    avgSessionsPerDay: parseFloat(avgSessionsPerDay.toFixed(2)),
+                    geographicDistribution: countryStats,
+                    timeOfDayTrends: hourlyClicks,
+                    repeatVisitors: repeatVisitors,
+                    engagementPatterns: {
+                        totalClicks: clicks.length,
+                        uniqueSessions: sessions.size,
+                        clicksPerSession: parseFloat((clicks.length / sessions.size).toFixed(2))
+                    }
+                }
             };
         } catch (error) {
             logger.error(`Error fetching analytics: ${error.message}`);

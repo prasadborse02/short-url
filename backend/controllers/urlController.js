@@ -52,7 +52,7 @@ exports.redirectToOriginal = async (req, res) => {
         if (!ubid) {
             ubid = uuidv4();
             res.cookie('ubid', ubid, { 
-                maxAge: 60 * 60 * 1000, // 1 hour
+                maxAge: 24 * 60 * 60 * 1000, // 24 hour
                 httpOnly: true 
             });
         }
@@ -71,7 +71,21 @@ exports.redirectToOriginal = async (req, res) => {
 
 exports.getUrlAnalytics = async (req, res) => {
     try {
-        const { shortCode } = req.params;
+        let jsonQuery;
+        try {
+            jsonQuery = JSON.parse(req.query.jsonQuery);
+        } catch (error) {
+            return res.status(400).json({ error: 'Invalid JSON query parameter' });
+        }
+
+        const { shortUrl } = jsonQuery;
+        if (!shortUrl) {
+            return res.status(400).json({ error: 'shortUrl is required in jsonQuery' });
+        }
+        
+        const shortCode = shortUrl.split('/').pop();
+        logger.debug(`Short code extracted from shortUrl: ${shortCode}`);
+
         const analytics = await urlService.getUrlAnalytics(shortCode);
         
         if (!analytics) {
