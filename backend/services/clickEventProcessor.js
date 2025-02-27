@@ -16,22 +16,14 @@ async function updateRedisStats(shortCode, country, ubid) {
 
 async function storeClickData(clickEvent) {
     try {
-        const [click, created] = await Click.findOrCreate({
-            where: {
-                short_code: clickEvent.short_code,
-                ubid: clickEvent.ubid,
-                ip_address: clickEvent.ip_address
-            },
-            defaults: {
-                country: clickEvent.country
-            }
+        const click = await Click.create({
+            short_code: clickEvent.short_code,
+            ubid: clickEvent.ubid,
+            ip_address: clickEvent.ip_address,
+            country: clickEvent.country
         });
         
-        if (created) {
-            logger.debug(`Stored new click data for ${clickEvent.short_code}`);
-        } else {
-            logger.debug(`Click data already exists for ${clickEvent.short_code} with same IP and UBID`);
-        }
+        logger.debug(`Stored new click data for ${clickEvent.short_code}`);
     } catch (error) {
         logger.error(`Error storing click data: ${error.message}, Short Code: ${clickEvent.short_code}`);
     }

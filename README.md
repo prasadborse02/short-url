@@ -139,3 +139,14 @@ DB_NAME=shorturl
 - Kafka.js
 - Winston
 - GeoIP-lite
+
+## Screenshots
+
+### Front Page
+![Front Page](images/image.png)
+
+### Implementation
+![Implementation Details](images/image3.png)
+
+### Analysis Tab
+![Analysis Details](images/image2.png)
