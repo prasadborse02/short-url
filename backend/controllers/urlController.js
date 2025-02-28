@@ -4,6 +4,7 @@ const logger = require('../config/logger');
 const { API_ENDPOINT, SHORT_CODE_LENGTH } = require('../constants/constants');
 const geoip = require('geoip-lite');
 const { v4: uuidv4 } = require('uuid');
+const { isPreviewBot } = require('../utils/userAgentHelper');
 
 exports.createShortUrl = async (req, res) => {
     try {
@@ -40,6 +41,13 @@ exports.redirectToOriginal = async (req, res) => {
 
         if (!originalUrl) {
             return res.status(404).json({ error: 'Short URL not found' });
+        }
+
+        // Check if request is from a preview bot
+        const userAgent = req.headers['user-agent'];
+        if (isPreviewBot(userAgent)) {
+            logger.debug(`Preview bot detected (${userAgent}), skipping click recording`);
+            return res.redirect(originalUrl);
         }
 
         // Get accurate IP address
