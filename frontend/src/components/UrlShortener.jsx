@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './UrlShortener.css';
+import Popup from './Popup';
 
 const UrlShortener = () => {
     const [url, setUrl] = useState('');
@@ -7,6 +8,7 @@ const UrlShortener = () => {
     const [shortUrl, setShortUrl] = useState('');
     const [error, setError] = useState('');
     const [copied, setCopied] = useState(false);
+    const [showPopup, setShowPopup] = useState(false);
 
     const handleCopy = async () => {
         try {
@@ -61,6 +63,13 @@ const UrlShortener = () => {
             return;
         }
 
+        // Check URL length
+        const urlLengthLimit = requestCode ? requestCode.length + 25 : 31;
+        if (url.length <= urlLengthLimit) {
+            setShowPopup(true);
+            return;
+        }
+
         try {
             const response = await fetch(`${import.meta.env.VITE_API_URL}/shorten`, {
                 method: 'POST',
@@ -89,6 +98,7 @@ const UrlShortener = () => {
 
     return (
         <div className="shortener-container">
+            {showPopup && <Popup onClose={() => setShowPopup(false)} />}
             <h1 className="title">Shorten it!</h1>
             <form className="shortener-form" onSubmit={handleSubmit}>
                 <div className="input-group">

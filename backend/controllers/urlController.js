@@ -3,6 +3,7 @@ const { generateUniqueShortCode } = require('../utils/codeGenerator');
 const logger = require('../config/logger');
 const { API_ENDPOINT, SHORT_CODE_LENGTH } = require('../constants/constants');
 const geoip = require('geoip-lite');
+const countries = require('i18n-iso-countries');
 const { v4: uuidv4 } = require('uuid');
 const { isPreviewBot } = require('../utils/userAgentHelper');
 
@@ -67,9 +68,12 @@ exports.redirectToOriginal = async (req, res) => {
 
         // Get country from IP
         const geo = geoip.lookup(ip);
-        const country = geo ? geo.country : 'Unknown';
+        const countryCode = geo ? geo.country : 'Unknown';
+        const countryName = countryCode !== 'Unknown' 
+            ? countries.getName(countryCode, 'en') || countryCode 
+            : 'Unknown';
 
-        await urlService.recordClick(shortCode, ubid, ip, country);
+        await urlService.recordClick(shortCode, ubid, ip, countryName);
         res.redirect(originalUrl);
     } catch (error) {
         logger.error(`Error redirecting: ${error}`);
